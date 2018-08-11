@@ -9,6 +9,30 @@ Created on Thu May  3 21:51:55 2018
 import numpy as np
 import subprocess
 import ATLAS
+from scipy.optimize import curve_fit
+
+def linear(x,m,b):
+    y = m*x + b
+    return y
+
+def deriv(x,y,window=10):
+    x_ = []
+    dy = []
+    
+    assert len(x) == len(y), 'Data mismatch. Must be of same length!'
+    
+    for i in range(len(x)):
+        if i >= (window/2) and i < (len(x)-(window/2)):
+            x_.append(x[i])
+            
+            yy = y[i-(window/2):i+((window/2)-1)]
+            xx = x[i-(window/2):i+((window/2)-1)]
+            
+            popt,_ = curve_fit(linear,xx,yy)
+            
+            dy.append(popt[0])
+        
+    return np.array(x_), np.array(dy)
 
 def IV_data(filename):
     with open(filename,'rb') as fObj:
@@ -28,17 +52,57 @@ def IV_data(filename):
     
     return Id, Vg, Vd
 
+def vth_linear(i_,v_):
+    v = v_[v_>3]
+    i = i_[v_>3]
+    sample_idx = np.arange(10)
+    lines = []
+    Rs = []
+    while sample_idx[-1] < len(v):
+        sample_i = i[sample_idx]
+        sample_v = v[sample_idx]
+        popt,_ = curve_fit(linear,sample_v,sample_i)
+        lines.append(popt)
+        # calculate r-squared
+        residuals = sample_i- linear(sample_v, popt[0],popt[1])
+        ss_res = np.sum(residuals**2)
+        ss_tot = np.sum((sample_i-np.mean(sample_i))**2)
+        Rs.append( 1 - (ss_res / ss_tot))
+    best_line = lines[np.argmax(np.array(Rs))]
+    
+    m = best_line[0]
+    b = best_line[1]
+    vth = -1*b/m
+    return vth
+        
+def vth_trans(i,v):
+    v_,gm = deriv(v,i,window=4)
+    
+    v__,dgm = deriv(v_,gm,window=6)
+    
+    max_V = v__[np.argmax(dgm)]
+    slope = np.max(dgm)
+    
+    idx = np.where(v_ == max_V)[0][0]
+    
+    vth = max_V - gm[idx]/slope
+    
+    return vth
+
 # Sum of squares cost function
 def cost(IdVdfile,IdVgfile):
-    VTH_LIN_REF = 0
-    VTH_TRANS_REF = 0
-    VBD_REF = 0
-    REF = np.array([VTH_LIN_REF,VTH_TRANS_REF,VBD_REF])
+    VTH_LIN_REF = 3.761
+    VTH_TRANS_REF = 2.671
+    #VBD_REF = 1102.036
+    REF = np.array([VTH_LIN_REF,VTH_TRANS_REF])
     # input and interpret log file
-    vth_linear = 0
-    vth_trans = 0
-    vbd = 0
-    output = np.array([vth_linear,vth_trans,vbd])
+    # Vth
+    Id, Vg, _ = IV_data(IdVgfile)
+    vth_lin = vth_linear(Id,Vg)
+    vth_tran = vth_trans(Id,Vg)
+    # Vbd
+    #vbd = 0
+    output = np.array([vth_lin,vth_tran])
     
     cost = np.sum(np.power(output-REF,2))
     return cost
