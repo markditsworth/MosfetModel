@@ -5,7 +5,7 @@ Created on Thu May  3 21:51:55 2018
 
 @author: markditsworth
 """
-
+# Make Model functions belong to a class to better integration of temperature
 import numpy as np
 import subprocess
 import ATLAS
@@ -154,7 +154,27 @@ def buildDeck(particle,IdVg,IdVd,particle_num):
     ATLAS.deck(nsub,ndrift,p,nsource,source,oxide,gate,p_doping,n_drift_doping,n_plus_doping,dit,IdVg,IdVd,filename,boundary,particle_num,tox)
     
     return filename
+
+
+def simulate(particles,run_num):
+    particle_costs = np.zeros(particles.shape[1])
     
+    for particle_num in range(particles.shape[1]):
+        particle = particles[:,particle_num].flatten()
+        IdVdfile = 'SiC_IdVd_run_%d_particle_%d.log'%(run_num,particle_num)
+        IdVgfile = 'SiC_IdVg_run_%d_particle_%d.log'%(run_num,particle_num)
+        # build deck commands
+        deckFile = buildDeck(particle,IdVgfile,IdVdfile,particle_num)
+        
+        # call simulation
+        cmd = '\\sedatools\\exe\\deckbuild -run %s'%deckFile
+        subprocess.call(cmd.split(' '))
+        
+        # calculate cost
+        particle_costs[particle_num] = cost(IdVdfile,IdVgfile)
+    
+    return particle_costs
+
 def testIt():
     part=0
     for n_d in [1e15,5e15,1e16,5e16]:
@@ -182,26 +202,6 @@ def velocityUpdate(velocities,particle_vectors, particle_bests_v, global_best_v,
     # Add social component to the velocity
     vel = vel + np.multiply(global_best_v-particle_vectors,s*SOCIAL_COMP)
     return vel
-
-
-def simulate(particles,run_num):
-    particle_costs = np.zeros(particles.shape[1])
-    
-    for particle_num in range(particles.shape[1]):
-        particle = particles[:,particle_num].flatten()
-        IdVdfile = 'SiC_IdVd_run_%d_particle_%d.log'%(run_num,particle_num)
-        IdVgfile = 'SiC_IdVg_run_%d_particle_%d.log'%(run_num,particle_num)
-        # build deck commands
-        deckFile = buildDeck(particle,IdVgfile,IdVdfile,particle_num)
-        
-        # call simulation
-        cmd = '\\sedatools\\exe\\deckbuild -run %s'%deckFile
-        subprocess.call(cmd.split(' '))
-        
-        # calculate cost
-        particle_costs[particle_num] = cost(IdVdfile,IdVgfile)
-    
-    return particle_costs
 
 def PSO():
     # CONSTANTS
