@@ -68,6 +68,7 @@ def vth_linear(i_,v_):
         ss_res = np.sum(residuals**2)
         ss_tot = np.sum((sample_i-np.mean(sample_i))**2)
         Rs.append( 1 - (ss_res / ss_tot))
+        sample_idx = sample_idx + 1
     best_line = lines[np.argmax(np.array(Rs))]
     
     m = best_line[0]
