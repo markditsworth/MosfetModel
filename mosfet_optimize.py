@@ -175,17 +175,6 @@ def simulate(particles,run_num):
     
     return particle_costs
 
-def testIt():
-    part=0
-    for n_d in [1e15,5e15,1e16,5e16]:
-        for n_p in [1e17,5e17,1e18,5e18]:
-            fname = '%f_%f'%(n_d,n_p)
-            p = [150,75,300,n_p,n_d,3e10]
-            n = buildDeck(p,'IdVg_%s.log'%fname,'IdVd_%s.log'%fname,part)
-            part += 1
-            print n
-        
-
     
 def velocityUpdate(velocities,particle_vectors, particle_bests_v, global_best_v,r,s):
     # make global_best_V a matrix instead of a vector
