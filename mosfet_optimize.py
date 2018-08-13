@@ -179,7 +179,7 @@ def simulate(particles,run_num):
     
 def velocityUpdate(velocities,particle_vectors, particle_bests_v, global_best_v,r,s):
     # make global_best_V a matrix instead of a vector
-    global_best_v = np.repeat(global_best_v.reshape((len(global_best_v),1)),particle_vectors.shape[1],axis=1)
+    global_best_v = np.repeat(global_best_v,particle_vectors.shape[1],axis=1)
     
     INERTIAL_CONST = 1 #may need to make a vector to account for scaling
     SOCIAL_COMP = 0.8
@@ -232,6 +232,8 @@ def PSO():
     # save global-best
     global_best_cost = np.min(particle_best_costs)
     global_best_vector = particle[:,np.argmin(particle_best_costs)]
+    saveFile = 'logs/global_best_particle_iteration_0.npy'
+    np.save(saveFile,global_best_vector.flatten())
     
     costs = [global_best_cost]
     # main loop
@@ -261,4 +263,32 @@ def PSO():
         global_best_cost = np.min(particle_best_costs)
         costs.append(global_best_cost)
         global_best_vector = particle_best_vectors[:,np.argmin(particle_best_costs)]
+        saveFile = 'logs/global_best_particle_iteration_%d.npy'%(q+1)
+        np.save(saveFile,global_best_vector.flatten())
+    
+    #save global best cost history
+    np.save('logs/global_best_costs.npy',np.array(costs))
+    print 'Done...'
+    print 'Best cost: %.2f'%costs[-1]
+    print 'Best Particle:'
+    for x in global_best_vector.flatten():
+        print x
+    
+
+if __name__ == '__main__':
+    # create and maintain logs
+    import os, time
+    if 'logs' not in os.listdir('.'):
+        os.mkdir('logs')
+        time = '_'.join([str(x) for x in time.gmtime()[:-4]])
+        os.system('echo %s >> ./logs/time.txt'%time)
+    else:
+        with open('./logs/time.txt','rb') as fObj:
+            ti = fObj.read()
+        os.system('mv logs old_logs_%s'%ti)
+        os.system('logs')
+        time = '_'.join([str(x) for x in time.gmtime()[:-4]])
+        os.system('echo %s >> ./logs/time.txt'%time)
+    
+    PSO()
     
