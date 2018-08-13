@@ -158,6 +158,19 @@ def buildDeck(particle,IdVg,IdVd,particle_num):
 
 
 def simulate(particles,run_num):
+    # Testing
+    particle_costs = np.zeros(particles.shape[1])
+    if run_num == 0:
+        # return costs from existing .log files (5)
+        for i,x in enumerate(['Vg_p0.log','Vg_p10.log','Vg_p11.log','Vg_p12.log','Vg_p13.log']):
+            particle_costs[i] = cost('','../Data/Model/raw/%s'%x)
+            print '#%d / 5'%(i+1)
+    elif run_num == 1:
+        # return costs from existing .log files (5)
+        for i,x in enumerate(['Vg_p20.log','Vg_p21.log','Vg_p22.log','Vg_p23.log','Vg_p24.log']):
+            particle_costs[i] = cost('','../Data/Model/raw/%s'%x)
+            print '#%d / 5'%(i+1)
+    '''
     particle_costs = np.zeros(particles.shape[1])
     
     for particle_num in range(particles.shape[1]):
@@ -173,7 +186,7 @@ def simulate(particles,run_num):
         
         # calculate cost
         particle_costs[particle_num] = cost(IdVdfile,IdVgfile)
-        print '#%d / %d'%(particle_num+1,particles.shape[1])
+        print '#%d / %d'%(particle_num+1,particles.shape[1])'''
     
     return particle_costs
 
@@ -197,9 +210,11 @@ def velocityUpdate(velocities,particle_vectors, particle_bests_v, global_best_v,
 
 def PSO():
     # CONSTANTS
-    NUMBER_OF_PARTICLES = 10
+    NUMBER_OF_PARTICLES = 5
     
     NUMBER_OF_ELEMENTS = 6
+    
+    NUMBER_OF_ITERATIONS = 1
     
     # particle structure
     #
@@ -243,7 +258,7 @@ def PSO():
     costs = [global_best_cost]
     print 'simulations done.\n'
     # main loop
-    for q in range(10):
+    for q in range(NUMBER_OF_ITERATIONS):
         print 'Iteration %d:'%(q+1)
         
         # randomize r and s vectors
