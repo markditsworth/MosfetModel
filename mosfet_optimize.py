@@ -158,19 +158,19 @@ def buildDeck(particle,IdVg,IdVd,particle_num):
 
 
 def simulate(particles,run_num):
-    # Testing
-    particle_costs = np.zeros(particles.shape[1])
-    if run_num == 0:
-        # return costs from existing .log files (5)
-        for i,x in enumerate(['Vg_p0.log','Vg_p10.log','Vg_p11.log','Vg_p12.log','Vg_p13.log']):
-            particle_costs[i] = cost('','../Data/Model/raw/%s'%x)
-            print '#%d / 5'%(i+1)
-    elif run_num == 1:
-        # return costs from existing .log files (5)
-        for i,x in enumerate(['Vg_p20.log','Vg_p21.log','Vg_p22.log','Vg_p23.log','Vg_p24.log']):
-            particle_costs[i] = cost('','../Data/Model/raw/%s'%x)
-            print '#%d / 5'%(i+1)
-    '''
+#    # Testing
+#    particle_costs = np.zeros(particles.shape[1])
+#    if run_num == 0:
+#        # return costs from existing .log files (5)
+#        for i,x in enumerate(['Vg_p0.log','Vg_p10.log','Vg_p11.log','Vg_p12.log','Vg_p13.log']):
+#            particle_costs[i] = cost('','../Data/Model/raw/%s'%x)
+#            print '#%d / 5'%(i+1)
+#    elif run_num == 1:
+#        # return costs from existing .log files (5)
+#        for i,x in enumerate(['Vg_p20.log','Vg_p21.log','Vg_p22.log','Vg_p23.log','Vg_p24.log']):
+#            particle_costs[i] = cost('','../Data/Model/raw/%s'%x)
+#            print '#%d / 5'%(i+1)
+#    # end testing section
     particle_costs = np.zeros(particles.shape[1])
     
     for particle_num in range(particles.shape[1]):
@@ -186,7 +186,7 @@ def simulate(particles,run_num):
         
         # calculate cost
         particle_costs[particle_num] = cost(IdVdfile,IdVgfile)
-        print '#%d / %d'%(particle_num+1,particles.shape[1])'''
+        print '#%d / %d'%(particle_num+1,particles.shape[1])
     
     return particle_costs
 
@@ -210,11 +210,11 @@ def velocityUpdate(velocities,particle_vectors, particle_bests_v, global_best_v,
 
 def PSO():
     # CONSTANTS
-    NUMBER_OF_PARTICLES = 5
+    NUMBER_OF_PARTICLES = 10
     
     NUMBER_OF_ELEMENTS = 6
     
-    NUMBER_OF_ITERATIONS = 1
+    NUMBER_OF_ITERATIONS = 10
     
     # particle structure
     #
@@ -223,7 +223,7 @@ def PSO():
     
     print 'Initializing particles...'
     
-    particle = np.zeros((NUMBER_OF_ELEMENTS,NUMBER_OF_PARTICLES),dtype=np.float64)
+    particle = np.zeros((NUMBER_OF_ELEMENTS,1),dtype=np.float64)
     
     # initialize particles
     particle[0,0] = 180
@@ -232,12 +232,14 @@ def PSO():
     particle[3,0] = 1e17
     particle[4,0] = 1e16
     particle[5,0] = 3e10
+    #print particle
     
     for x in range(NUMBER_OF_PARTICLES):
         if x>0:
-            noise = 0.5 + np.random.random(size=(6,1))
-            particle[:,x] = np.multiply(particle[:,0],noise)
-    
+            noise = 0.5 + np.random.random(size=(NUMBER_OF_ELEMENTS,1))
+            particle = np.hstack((particle,np.multiply(particle[:,0].reshape(NUMBER_OF_ELEMENTS,1),noise)))
+            
+    print particle.shape
     print 'Iteration 0:'
     # initialize velocities
     v = np.random.rand(NUMBER_OF_ELEMENTS,NUMBER_OF_PARTICLES)*2 - 1
@@ -251,7 +253,7 @@ def PSO():
     
     # save global-best
     global_best_cost = np.min(particle_best_costs)
-    global_best_vector = particle[:,np.argmin(particle_best_costs)]
+    global_best_vector = particle[:,np.argmin(particle_best_costs)].reshape(NUMBER_OF_ELEMENTS,1)
     saveFile = 'logs/global_best_particle_iteration_0.npy'
     np.save(saveFile,global_best_vector.flatten())
     
@@ -284,7 +286,7 @@ def PSO():
         # save global best
         global_best_cost = np.min(particle_best_costs)
         costs.append(global_best_cost)
-        global_best_vector = particle_best_vectors[:,np.argmin(particle_best_costs)]
+        global_best_vector = particle_best_vectors[:,np.argmin(particle_best_costs)].reshape(NUMBER_OF_ELEMENTS,1)
         saveFile = 'logs/global_best_particle_iteration_%d.npy'%(q+1)
         np.save(saveFile,global_best_vector.flatten())
         print 'simulations done.\n'
@@ -309,7 +311,7 @@ if __name__ == '__main__':
         with open('./logs/time.txt','rb') as fObj:
             ti = fObj.read()
         os.system('mv logs old_logs_%s'%ti)
-        os.system('logs')
+        os.system('mkdir logs')
         time = '_'.join([str(x) for x in time.gmtime()[:-4]])
         os.system('echo %s >> ./logs/time.txt'%time)
     
