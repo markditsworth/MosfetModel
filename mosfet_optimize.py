@@ -173,6 +173,7 @@ def simulate(particles,run_num):
         
         # calculate cost
         particle_costs[particle_num] = cost(IdVdfile,IdVgfile)
+        print '#%d / %d'%(particle_num+1,particles.shape[1])
     
     return particle_costs
 
@@ -181,7 +182,7 @@ def velocityUpdate(velocities,particle_vectors, particle_bests_v, global_best_v,
     # make global_best_V a matrix instead of a vector
     global_best_v = np.repeat(global_best_v,particle_vectors.shape[1],axis=1)
     
-    INERTIAL_CONST = 1 #may need to make a vector to account for scaling
+    INERTIAL_CONST = 0.5 #may need to make a vector to account for scaling
     SOCIAL_COMP = 0.8
     COGNITIVE_COMP = 0.4
     
@@ -191,6 +192,7 @@ def velocityUpdate(velocities,particle_vectors, particle_bests_v, global_best_v,
     vel = vel + np.multiply(particle_bests_v-particle_vectors,r*COGNITIVE_COMP)
     # Add social component to the velocity
     vel = vel + np.multiply(global_best_v-particle_vectors,s*SOCIAL_COMP)
+    print '...updated velocity'
     return vel
 
 def PSO():
@@ -203,6 +205,8 @@ def PSO():
     #
     # | n+width | Lch | N-drift/gate length | n+ | n- | dit | (in column vector form)
     ##########################################################
+    
+    print 'Initializing particles...'
     
     particle = np.zeros((NUMBER_OF_ELEMENTS,NUMBER_OF_PARTICLES),dtype=np.float64)
     
@@ -219,9 +223,10 @@ def PSO():
             noise = 0.5 + np.random.random(size=(6,1))
             particle[:,x] = np.multiply(particle[:,0],noise)
     
+    print 'Iteration 0:'
     # initialize velocities
     v = np.random.rand(NUMBER_OF_ELEMENTS,NUMBER_OF_PARTICLES)*2 - 1
-    
+    print 'running simulations...'
     # run initial simulations
     particle_costs = simulate(particle,0)
     
@@ -236,6 +241,7 @@ def PSO():
     np.save(saveFile,global_best_vector.flatten())
     
     costs = [global_best_cost]
+    print 'simulations done.\n'
     # main loop
     for q in range(10):
         print 'Iteration %d:'%(q+1)
@@ -249,7 +255,8 @@ def PSO():
         
         # update particles
         particle = particle + v
-        
+        print 'particles updated...'
+        print 'running simulations...'
         # run simulation for each particle
         particle_costs = simulate(particle,q+1)
         
@@ -265,6 +272,7 @@ def PSO():
         global_best_vector = particle_best_vectors[:,np.argmin(particle_best_costs)]
         saveFile = 'logs/global_best_particle_iteration_%d.npy'%(q+1)
         np.save(saveFile,global_best_vector.flatten())
+        print 'simulations done.\n'
     
     #save global best cost history
     np.save('logs/global_best_costs.npy',np.array(costs))
