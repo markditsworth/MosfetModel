@@ -131,30 +131,34 @@ def buildDeck(particle,IdVg,IdVd,particle_num):
     p_doping = 2e17
     es = 9.66 *8.85e-12
     p_source_width = TOTAL_WIDTH - n_width - p_width - n_drift_width
-    source_contact_width= p_source_width + (n_width/2.)
-    tox = (es * (p_source_width * DEPTH / 1e12) / Cox) * 1e6 #* 0.6
-    
-    boundary = TOTAL_HEIGHT - NSUB_HEIGHT
-    
-    nsub = "0,%f %f,%f %f,%f 0,%f"%(TOTAL_HEIGHT, TOTAL_WIDTH,TOTAL_HEIGHT, TOTAL_WIDTH,TOTAL_HEIGHT-NSUB_HEIGHT, TOTAL_HEIGHT-NSUB_HEIGHT)
-    
-    ndrift = "%f,%f %f,%f %f,%f %f,%f %f,%f %f,%f"%(0,TOTAL_HEIGHT-NSUB_HEIGHT, TOTAL_WIDTH,TOTAL_HEIGHT-NSUB_HEIGHT, TOTAL_WIDTH,0, TOTAL_WIDTH-n_drift_width,0, TOTAL_WIDTH-n_drift_width,P_HEIGHT, 0,P_HEIGHT)
-    
-    p = "%f,%f %f,%f %f,%f %f,%f %f,%f %f,%f %f,%f %f,%f"%(0,P_HEIGHT, TOTAL_WIDTH-n_drift_width,P_HEIGHT, TOTAL_WIDTH-n_drift_width,0, TOTAL_WIDTH-n_drift_width-p_width,0, TOTAL_WIDTH-n_drift_width-p_width,N_HEIGHT, p_source_width,N_HEIGHT, p_source_width,0, 0,0)
-    
-    nsource = "%f,%f %f,%f %f,%f %f,%f %f,%f"%(p_source_width,N_HEIGHT, p_source_width+n_width,N_HEIGHT, p_source_width+n_width,0, source_contact_width,0, p_source_width,0)
-    
-    source = "%f,%f %f,%f %f,%f %f,%f %f,%f"%(0,0, source_contact_width,0, source_contact_width,-tox, source_contact_width,-0.3, 0,-0.3)
-    
-    oxide = "%f,%f %f,%f %f,%f %f,%f %f,%f %f,%f %f,%f"%(source_contact_width,0, p_source_width+n_width,0, TOTAL_WIDTH-n_drift_width,0, TOTAL_WIDTH,0, TOTAL_WIDTH,-tox, p_source_width+n_width-1,-tox, source_contact_width,-tox)
-    
-    gate = "%f,%f %f,%f %f,%f %f,%f"%(p_source_width+n_width-1,-tox, TOTAL_WIDTH,-tox, TOTAL_WIDTH,-tox-0.3, p_source_width+n_width-1,-tox-0.3)
-    
-    filename = "SiC_particle_%d.in"%particle_num
-    
-    ATLAS.deck(nsub,ndrift,p,nsource,source,oxide,gate,p_doping,n_drift_doping,n_plus_doping,dit,IdVg,IdVd,filename,boundary,particle_num,tox)
-    
-    return filename
+    # if geometry is bad, flag for ensuring high cost
+    if p_source_width <= 0:
+        return 1
+    else:
+        source_contact_width= p_source_width + (n_width/2.)
+        tox = (es * (p_source_width * DEPTH / 1e12) / Cox) * 1e6 #* 0.6
+        
+        boundary = TOTAL_HEIGHT - NSUB_HEIGHT
+        
+        nsub = "0,%f %f,%f %f,%f 0,%f"%(TOTAL_HEIGHT, TOTAL_WIDTH,TOTAL_HEIGHT, TOTAL_WIDTH,TOTAL_HEIGHT-NSUB_HEIGHT, TOTAL_HEIGHT-NSUB_HEIGHT)
+        
+        ndrift = "%f,%f %f,%f %f,%f %f,%f %f,%f %f,%f"%(0,TOTAL_HEIGHT-NSUB_HEIGHT, TOTAL_WIDTH,TOTAL_HEIGHT-NSUB_HEIGHT, TOTAL_WIDTH,0, TOTAL_WIDTH-n_drift_width,0, TOTAL_WIDTH-n_drift_width,P_HEIGHT, 0,P_HEIGHT)
+        
+        p = "%f,%f %f,%f %f,%f %f,%f %f,%f %f,%f %f,%f %f,%f"%(0,P_HEIGHT, TOTAL_WIDTH-n_drift_width,P_HEIGHT, TOTAL_WIDTH-n_drift_width,0, TOTAL_WIDTH-n_drift_width-p_width,0, TOTAL_WIDTH-n_drift_width-p_width,N_HEIGHT, p_source_width,N_HEIGHT, p_source_width,0, 0,0)
+        
+        nsource = "%f,%f %f,%f %f,%f %f,%f %f,%f"%(p_source_width,N_HEIGHT, p_source_width+n_width,N_HEIGHT, p_source_width+n_width,0, source_contact_width,0, p_source_width,0)
+        
+        source = "%f,%f %f,%f %f,%f %f,%f %f,%f"%(0,0, source_contact_width,0, source_contact_width,-tox, source_contact_width,-0.3, 0,-0.3)
+        
+        oxide = "%f,%f %f,%f %f,%f %f,%f %f,%f %f,%f %f,%f"%(source_contact_width,0, p_source_width+n_width,0, TOTAL_WIDTH-n_drift_width,0, TOTAL_WIDTH,0, TOTAL_WIDTH,-tox, p_source_width+n_width-1,-tox, source_contact_width,-tox)
+        
+        gate = "%f,%f %f,%f %f,%f %f,%f"%(p_source_width+n_width-1,-tox, TOTAL_WIDTH,-tox, TOTAL_WIDTH,-tox-0.3, p_source_width+n_width-1,-tox-0.3)
+        
+        filename = "SiC_particle_%d.in"%particle_num
+        
+        ATLAS.deck(nsub,ndrift,p,nsource,source,oxide,gate,p_doping,n_drift_doping,n_plus_doping,dit,IdVg,IdVd,filename,boundary,particle_num,tox)
+        
+        return filename
 
 
 def simulate(particles,run_num):
@@ -180,13 +184,18 @@ def simulate(particles,run_num):
         # build deck commands
         deckFile = buildDeck(particle,IdVgfile,IdVdfile,particle_num)
         
-        # call simulation
-        cmd = '\\sedatools\\exe\\deckbuild -run %s'%deckFile
-        subprocess.call(cmd.split(' '))
-        
-        # calculate cost
-        particle_costs[particle_num] = cost(IdVdfile,IdVgfile)
-        print '#%d / %d'%(particle_num+1,particles.shape[1])
+        if deckFile == 1:
+            #penalize arbitrarily high
+            particle_costs[particle_num] = 1e15
+            print '#%d / %d  -- Invalid geometry'%(particle_num+1,particles.shape[1])
+        else:
+            # call simulation
+            cmd = '\\sedatools\\exe\\deckbuild -run %s'%deckFile
+            subprocess.call(cmd.split(' '))
+            
+            # calculate cost
+            particle_costs[particle_num] = cost(IdVdfile,IdVgfile)
+            print '#%d / %d'%(particle_num+1,particles.shape[1])
     
     return particle_costs
 
