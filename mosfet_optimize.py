@@ -235,10 +235,10 @@ def PSO():
     particle = np.zeros((NUMBER_OF_ELEMENTS,1),dtype=np.float64)
     
     # initialize particles
-    particle[0,0] = 180
-    particle[1,0] = 190
+    particle[0,0] = 182
+    particle[1,0] = 195
     particle[2,0] = 200
-    particle[3,0] = 1e17
+    particle[3,0] = 5e17
     particle[4,0] = 1e16
     particle[5,0] = 3e10
     #print particle
