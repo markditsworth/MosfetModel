@@ -154,50 +154,50 @@ struct outf=Wolfspeed_SiC_%d.str
 #tonyplot Wolfspeed_SiC.str
 ##############################
 
-go atlas
-
-mesh infile=Wolfspeed_SiC_%d.str
-
-material material=4H-SiC permitti=9.66 eg300=3.26 \
-			edb=0.1 gcb=2 eab=0.2 gvb=4 \
-			nsrhn=3e17 nsrhp=3e17 taun0=5e-10 taup0=1e-10 \
-			tc.a=100 taurel.el=2.8e-12
-models temp=300 conmob bgn srh print
-impact selb
-mobility material=4H-SiC	vsatn=2e7 vsatp=2e7 betan=2 betap=2 \
-			mu1n.caug=10  mu2n.caug=410 ncritn.caug=13e17  \
-			deltan.caug=0.6 gamman.caug=0.0 \
-			alphan.caug=-3 betan.caug=-3 \
-			mu1p.caug=20   mu2p.caug=95  ncritp.caug=1e19 \
-			deltap.caug=0.5  gammap.caug=0.0 \
-			alphap.caug=-3 betap.caug=-3
-
-contact name=gate n.poly
-#contact name=source workfunction=0
-#contact name=drain workfunction=0
-
-#interface qf=3e10
-interface qf=%f
+#go atlas
 #
-solve init
-method newton trap maxtraps=20 climit=1e-4  ir.tol=1e-12 ix.tol=1e-12
-
- 
-solve init
+#mesh infile=Wolfspeed_SiC_%d.str
 #
-log outf=%s
+#material material=4H-SiC permitti=9.66 eg300=3.26 \
+#			edb=0.1 gcb=2 eab=0.2 gvb=4 \
+#			nsrhn=3e17 nsrhp=3e17 taun0=5e-10 taup0=1e-10 \
+#			tc.a=100 taurel.el=2.8e-12
+#models temp=300 conmob bgn srh print
+#impact selb
+#mobility material=4H-SiC	vsatn=2e7 vsatp=2e7 betan=2 betap=2 \
+#			mu1n.caug=10  mu2n.caug=410 ncritn.caug=13e17  \
+#			deltan.caug=0.6 gamman.caug=0.0 \
+#			alphan.caug=-3 betan.caug=-3 \
+#			mu1p.caug=20   mu2p.caug=95  ncritp.caug=1e19 \
+#			deltap.caug=0.5  gammap.caug=0.0 \
+#			alphap.caug=-3 betap.caug=-3
+#
+#contact name=gate n.poly
+##contact name=source workfunction=0
+##contact name=drain workfunction=0
+#
+##interface qf=3e10
+#interface qf=%f
+##
+#solve init
+#method newton trap maxtraps=20 climit=1e-4  ir.tol=1e-12 ix.tol=1e-12
+#
+# 
+#solve init
+##
+#log outf=%s
+##solve vgate=0
+#
+#solve vsource=0
+#solve vdrain=0.03
+#solve vdrain=0.05
+#solve vdrain=0.1
 #solve vgate=0
-
-solve vsource=0
-solve vdrain=0.03
-solve vdrain=0.05
-solve vdrain=0.1
-solve vgate=0
-solve vdrain=0.09
-solve vdrain=0.25 vstep=0.25 vfinal=5 name=drain 
-solve vstep=1.0 vfinal=10 name=drain
-solve vstep=10.0 vfinal=1000 name=drain
-solve vstep=100.0 vfinal=3000 name=drain
+#solve vdrain=0.09
+#solve vdrain=0.25 vstep=0.25 vfinal=5 name=drain 
+#solve vstep=1.0 vfinal=10 name=drain
+#solve vstep=10.0 vfinal=1000 name=drain
+#solve vstep=100.0 vfinal=3000 name=drain
 
 ##############################
 
