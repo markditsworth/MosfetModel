@@ -52,10 +52,10 @@ def IV_data(filename):
     
     return Id, Vg, Vd
 
-def vth_linear(i_,v_):
+def vth_linear(i_,v_,window_size=10):
     v = v_[v_>3]
     i = i_[v_>3]
-    sample_idx = np.arange(10)
+    sample_idx = np.arange(window_size)
     lines = []
     Rs = []
     while sample_idx[-1] < len(v):
@@ -307,7 +307,6 @@ def PSO():
     print 'Best Particle:'
     for x in global_best_vector.flatten():
         print x
-    
 
 if __name__ == '__main__':
     # create and maintain logs
