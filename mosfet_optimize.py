@@ -322,6 +322,5 @@ if __name__ == '__main__':
         os.system('mkdir logs')
         time = '_'.join([str(x) for x in time.gmtime()[:-4]])
         os.system('echo %s >> ./logs/time.txt'%time)
-    
     PSO()
     
