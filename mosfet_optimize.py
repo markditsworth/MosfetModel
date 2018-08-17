@@ -171,19 +171,21 @@ class Model:
 
 
     def simulate(self,particles,run_num):
-    #    # Testing
-    #    particle_costs = np.zeros(particles.shape[1])
-    #    if run_num == 0:
-    #        # return costs from existing .log files (5)
-    #        for i,x in enumerate(['Vg_p0.log','Vg_p10.log','Vg_p11.log','Vg_p12.log','Vg_p13.log']):
-    #            particle_costs[i] = cost('','../Data/Model/raw/%s'%x)
-    #            print '#%d / 5'%(i+1)
-    #    elif run_num == 1:
-    #        # return costs from existing .log files (5)
-    #        for i,x in enumerate(['Vg_p20.log','Vg_p21.log','Vg_p22.log','Vg_p23.log','Vg_p24.log']):
-    #            particle_costs[i] = cost('','../Data/Model/raw/%s'%x)
-    #            print '#%d / 5'%(i+1)
-    #    # end testing section
+#        # Testing
+#        particle_costs = np.zeros(particles.shape[1])
+#        if run_num == 0:
+#            # return costs from existing .log files (5)
+#            for i,x in enumerate(['Vg_p00.log','Vg_p10.log','Vg_p11.log','Vg_p12.log','Vg_p13.log']):
+#                particle_costs[i] = self.cost('','../Data/Model/raw/%s'%x)
+#                print '#%d / 5'%(i+1)
+#        elif run_num == 1:
+#            # return costs from existing .log files (5)
+#            for i,x in enumerate(['Vg_p20.log','Vg_p21.log','Vg_p22.log','Vg_p23.log','Vg_p24.log']):
+#                particle_costs[i] = self.cost('','../Data/Model/raw/%s'%x)
+#                print '#%d / 5'%(i+1)
+#        return particle_costs
+#        # end testing section
+        
         particle_costs = np.zeros(particles.shape[1])
         
         for particle_num in range(particles.shape[1]):
@@ -346,24 +348,25 @@ def main(argv):
         elif argv[0] == '--cognitive':
             cognitive_component = float(argv[1])
         elif argv[0] == '--particles':
-            number_of_particles = float(argv[1])
+            number_of_particles = int(argv[1])
         elif argv[0] == '--iterations':
-            number_of_iterations = float(argv[1])
+            number_of_iterations = int(argv[1])
         elif argv[0] == '--temp':
             ambient_temperature = int(argv[1])
         elif argv[0] == '-h' or argv[0] == '--help':
             help_flag = True
         argv = argv[1:]
     
-    if not (number_of_iterations and number_of_particles and inertial_component and social_component and cognitive_component):
-        print 'Flag missing!'
+    if help_flag:
+        print ''
         print ' --inertial <inertial component>'
         print ' --social <social component>'
         print ' --cognitive <cognitive component>'
         print ' --particles <particle number>'
         print ' --iterations <iteration number>'
         print ' --temp <300 or 350> (optional, 300 by default)'
-    elif help_flag:
+    elif not (number_of_iterations and number_of_particles and inertial_component and social_component and cognitive_component):
+        print 'Flag missing!'
         print ' --inertial <inertial component>'
         print ' --social <social component>'
         print ' --cognitive <cognitive component>'
