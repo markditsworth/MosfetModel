@@ -374,4 +374,7 @@ def main(argv):
         MosfetModel = Model(ambient_temperature)
         Swarm = PSO(inertial_component, social_component, cognitive_component, number_of_particles, number_of_iterations)
         Swarm.optimize(MosfetModel)
-    
+
+if __name__ == '__main__':
+    from sys import argv
+    main(argv)
