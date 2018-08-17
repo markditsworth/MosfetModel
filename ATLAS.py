@@ -6,7 +6,7 @@ Created on Mon Jun  4 12:57:12 2018
 @author: markditsworth
 """
 
-def deck(nsub,ndrift,p,n_plus,source,oxide,gate,p_doping,n_drift_doping,n_plus_doping,dit,IdVg_fname,IdVd_fname,filename,boundary,num,tox):
+def deck(nsub,ndrift,p,n_plus,source,oxide,gate,p_doping,n_drift_doping,n_plus_doping,dit,IdVg_fname,IdVd_fname,filename,boundary,num,tox,temp):
     deck = r"""
 # (c) Silvaco Inc., 2015
 go devedit
@@ -162,7 +162,7 @@ struct outf=Wolfspeed_SiC_%d.str
 #			edb=0.1 gcb=2 eab=0.2 gvb=4 \
 #			nsrhn=3e17 nsrhp=3e17 taun0=5e-10 taup0=1e-10 \
 #			tc.a=100 taurel.el=2.8e-12
-#models temp=300 conmob bgn srh print
+#models temp=%d conmob bgn srh print
 #impact selb
 #mobility material=4H-SiC	vsatn=2e7 vsatp=2e7 betan=2 betap=2 \
 #			mu1n.caug=10  mu2n.caug=410 ncritn.caug=13e17  \
@@ -209,7 +209,7 @@ material material=4H-SiC permitti=9.66 eg300=3.26 \
 			edb=0.1 gcb=2 eab=0.2 gvb=4 \
 			nsrhn=3e17 nsrhp=3e17 taun0=5e-10 taup0=1e-10 \
 			tc.a=100 taurel.el=2.8e-12
-models temp=300 conmob bgn srh print
+models temp=%d conmob bgn srh print
 #impact selb
 mobility material=4H-SiC	vsatn=2e7 vsatp=2e7 betan=2 betap=2 \
 			mu1n.caug=10  mu2n.caug=410 ncritn.caug=13e17  \
@@ -245,7 +245,7 @@ solve vgate=0.05 vstep=0.05 vfinal=8 name=gate
  
 #tonyplot
 quit
-    """%(nsub,ndrift,n_drift_doping,p,p_doping,n_plus,n_plus_doping,oxide,source,gate,tox/2.0,boundary-1,boundary+1,num,num,dit,IdVd_fname,num,dit,IdVg_fname)
+    """%(nsub,ndrift,n_drift_doping,p,p_doping,n_plus,n_plus_doping,oxide,source,gate,tox/2.0,boundary-1,boundary+1,num,num,temp,dit,IdVd_fname,num,temp,dit,IdVg_fname)
     
     # save deck as
     with open(filename,'wb') as fObj:
