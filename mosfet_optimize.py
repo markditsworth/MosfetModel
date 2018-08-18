@@ -272,11 +272,13 @@ class PSO:
         
         # save global-best
         global_best_cost = np.min(particle_best_costs)
-        global_best_vector = particle[:,np.argmin(particle_best_costs)].reshape(self.NUMBER_OF_ELEMENTS,1)
+        best_vector_number = np.argmin(particle_best_costs)
+        global_best_vector = particle[:,best_vector_number].reshape(self.NUMBER_OF_ELEMENTS,1)
         saveFile = 'logs/global_best_particle_iteration_0.npy'
         np.save(saveFile,global_best_vector.flatten())
         
         costs = [global_best_cost]
+        best_vectors = [best_vector_number]
         print 'simulations done.\n'
         # main loop
         for q in range(self.NUMBER_OF_ITERATIONS):
@@ -305,18 +307,22 @@ class PSO:
             # save global best
             global_best_cost = np.min(particle_best_costs)
             costs.append(global_best_cost)
-            global_best_vector = particle_best_vectors[:,np.argmin(particle_best_costs)].reshape(self.NUMBER_OF_ELEMENTS,1)
+            best_vector_number = np.argmin(particle_best_costs)
+            best_vectors.append(best_vector_number)
+            global_best_vector = particle_best_vectors[:,best_vector_number].reshape(self.NUMBER_OF_ELEMENTS,1)
             saveFile = 'logs/global_best_particle_iteration_%d.npy'%(q+1)
             np.save(saveFile,global_best_vector.flatten())
             
             #save particle positions
             saveFile = 'logs/particle_iteration_%d.npy'%(q+1)
             np.save(saveFile, particle)
-            
+            print 'Best Particle Number: %d'%best_vector_number
             print 'simulations done.\n'
         
         #save global best cost history
         np.save('logs/global_best_costs.npy',np.array(costs))
+        #save global best particle indexes
+        np.save('logs/global_best_indeces.npy',np.array(best_vectors))
         print 'Done...'
         print 'Best cost: %.2f'%costs[-1]
         print 'Best Particle:'
