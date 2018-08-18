@@ -308,6 +308,11 @@ class PSO:
             global_best_vector = particle_best_vectors[:,np.argmin(particle_best_costs)].reshape(self.NUMBER_OF_ELEMENTS,1)
             saveFile = 'logs/global_best_particle_iteration_%d.npy'%(q+1)
             np.save(saveFile,global_best_vector.flatten())
+            
+            #save particle positions
+            saveFile = 'logs/particle_iteration_%d.npy'%(q+1)
+            np.save(saveFile, particle)
+            
             print 'simulations done.\n'
         
         #save global best cost history
