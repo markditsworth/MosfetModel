@@ -229,7 +229,7 @@ interface qf=%f
 solve init
 method newton trap maxtraps=20 climit=1e-4  ir.tol=1e-12 ix.tol=1e-12
 
- 
+
 solve init
 #
 log outf=%s
