@@ -10,6 +10,7 @@ import numpy as np
 import subprocess
 import ATLAS
 from scipy.optimize import curve_fit
+from psopy import PSO
 
 def linear(x,m,b):
     y = m*x + b
@@ -102,6 +103,7 @@ class Model:
             
         # keep objects for vths incase weighting is desired in the cost function
         self.REF = np.array([self.VTH_LIN_REF,self.VTH_TRANS_REF])
+        self.run_num = 0
         
     # Sum of squares cost function
     def cost(self,IdVdfile,IdVgfile):
@@ -170,19 +172,20 @@ class Model:
             return filename
 
 
-    def simulate(self,particles,run_num):
+    def simulate(self,particles):
 #        # Testing
 #        particle_costs = np.zeros(particles.shape[1])
-#        if run_num == 0:
+#        if self.run_num == 0:
 #            # return costs from existing .log files (5)
 #            for i,x in enumerate(['Vg_p00.log','Vg_p10.log','Vg_p11.log','Vg_p12.log','Vg_p13.log']):
-#                particle_costs[i] = self.cost('','../Data/Model/raw/%s'%x)
+#                particle_costs[i] = self.cost('','../Data/Model/iterations/Iteration2_doping/%s'%x)
 #                print '#%d / 5'%(i+1)
-#        elif run_num == 1:
+#        elif self.run_num == 1:
 #            # return costs from existing .log files (5)
 #            for i,x in enumerate(['Vg_p20.log','Vg_p21.log','Vg_p22.log','Vg_p23.log','Vg_p24.log']):
-#                particle_costs[i] = self.cost('','../Data/Model/raw/%s'%x)
+#                particle_costs[i] = self.cost('','../Data/Model/iterations/Iteration2_doping/%s'%x)
 #                print '#%d / 5'%(i+1)
+#        self.run_num += 1
 #        return particle_costs
 #        # end testing section
         
@@ -190,8 +193,8 @@ class Model:
         
         for particle_num in range(particles.shape[1]):
             particle = particles[:,particle_num].flatten()
-            IdVdfile = 'SiC_IdVd_run_%d_particle_%d.log'%(run_num,particle_num)
-            IdVgfile = 'SiC_IdVg_run_%d_particle_%d.log'%(run_num,particle_num)
+            IdVdfile = 'SiC_IdVd_run_%d_particle_%d.log'%(self.run_num,particle_num)
+            IdVgfile = 'SiC_IdVg_run_%d_particle_%d.log'%(self.run_num,particle_num)
             # build deck commands
             deckFile = self.buildDeck(particle,IdVgfile,IdVdfile,particle_num)
             
@@ -208,126 +211,128 @@ class Model:
                 particle_costs[particle_num] = self.cost(IdVdfile,IdVgfile)
                 print '#%d / %d'%(particle_num+1,particles.shape[1])
         
+        self.run_num += 1
+        
         return particle_costs
 
-class PSO:
-    def __init__(self,inertia,social,cognitive,particleNum,iterationNum,elementNum=6):
-        self.NUMBER_OF_PARTICLES = particleNum
-        self.NUMBER_OF_ITERATIONS = iterationNum
-        self.NUMBER_OF_ELEMENTS = elementNum
-        self.INERTIAL_CONST = inertia
-        self.SOCIAL_COMP = social
-        self.COGNITIVE_COMP = cognitive
-        
-    def velocityUpdate(self,velocities,particle_vectors, particle_bests_v, global_best_v,r,s):
-        # make global_best_V a matrix instead of a vector
-        global_best_v = np.repeat(global_best_v,particle_vectors.shape[1],axis=1)
-        
-        # New velocity with inertial scaling
-        vel = np.multiply(velocities,self.INERTIAL_CONST)
-        # Add congnitive component to the velocity
-        vel = vel + np.multiply(particle_bests_v-particle_vectors,r*self.COGNITIVE_COMP)
-        # Add social component to the velocity
-        vel = vel + np.multiply(global_best_v-particle_vectors,s*self.SOCIAL_COMP)
-        print '...updated velocity'
-        return vel
-
-    def optimize(self,Model):
-        # CONSTANTS
-        
-        # particle structure
-        #
-        # | n+width | Lch | N-drift/gate length | n+ | n- | dit | (in column vector form)
-        ##########################################################
-        
-        print 'Initializing particles...'
-        
-        particle = np.zeros((self.NUMBER_OF_ELEMENTS,1),dtype=np.float64)
-        
-        # initialize particles
-        particle[0,0] = 182
-        particle[1,0] = 195
-        particle[2,0] = 200
-        particle[3,0] = 5e17
-        particle[4,0] = 1e16
-        particle[5,0] = 3e10
-        #print particle
-        
-        for x in range(self.NUMBER_OF_PARTICLES):
-            if x>0:
-                noise = 0.5 + np.random.random(size=(self.NUMBER_OF_ELEMENTS,1))
-                particle = np.hstack((particle,np.multiply(particle[:,0].reshape(self.NUMBER_OF_ELEMENTS,1),noise)))
-                
-        #print particle.shape
-        print 'Iteration 0:'
-        # initialize velocities
-        v = np.random.rand(self.NUMBER_OF_ELEMENTS,self.NUMBER_OF_PARTICLES)*2 - 1
-        print 'running simulations...'
-        # run initial simulations
-        particle_costs = Model.simulate(particle,0)
-        
-        # save particle-bests (intially equivalent to the first round)
-        particle_best_costs = particle_costs.copy()
-        particle_best_vectors = particle.copy()
-        
-        # save global-best
-        global_best_cost = np.min(particle_best_costs)
-        best_vector_number = np.argmin(particle_best_costs)
-        global_best_vector = particle[:,best_vector_number].reshape(self.NUMBER_OF_ELEMENTS,1)
-        saveFile = 'logs/global_best_particle_iteration_0.npy'
-        np.save(saveFile,global_best_vector.flatten())
-        
-        costs = [global_best_cost]
-        best_vectors = [best_vector_number]
-        print 'simulations done.\n'
-        # main loop
-        for q in range(self.NUMBER_OF_ITERATIONS):
-            print 'Iteration %d:'%(q+1)
-            
-            # randomize r and s vectors
-            r = np.random.rand(self.NUMBER_OF_ELEMENTS,self.NUMBER_OF_PARTICLES)
-            s = np.random.rand(self.NUMBER_OF_ELEMENTS,self.NUMBER_OF_PARTICLES)
-            
-            # update velocities
-            v = self.velocityUpdate(v, particle, particle_best_vectors, global_best_vector,r,s)
-            
-            # update particles
-            particle = particle + v
-            print 'particles updated...'
-            print 'running simulations...'
-            # run simulation for each particle
-            particle_costs = Model.simulate(particle,q+1)
-            
-            # save particle bests
-            for i,particle_cost in enumerate(particle_costs):
-                if particle_cost < particle_best_costs[i]:
-                    particle_best_costs[i] = particle_cost
-                    particle_best_vectors[:,i] = particle[:,i]
-            
-            # save global best
-            global_best_cost = np.min(particle_best_costs)
-            costs.append(global_best_cost)
-            best_vector_number = np.argmin(particle_best_costs)
-            best_vectors.append(best_vector_number)
-            global_best_vector = particle_best_vectors[:,best_vector_number].reshape(self.NUMBER_OF_ELEMENTS,1)
-            saveFile = 'logs/global_best_particle_iteration_%d.npy'%(q+1)
-            np.save(saveFile,global_best_vector.flatten())
-            
-            #save particle positions
-            saveFile = 'logs/particle_iteration_%d.npy'%(q+1)
-            np.save(saveFile, particle)
-            print 'Best Particle Number: %d'%best_vector_number
-            print 'simulations done.\n'
-        
-        #save global best cost history
-        np.save('logs/global_best_costs.npy',np.array(costs))
-        #save global best particle indexes
-        np.save('logs/global_best_indeces.npy',np.array(best_vectors))
-        print 'Done...'
-        print 'Best cost: %.2f'%costs[-1]
-        print 'Best Particle:'
-        for x in global_best_vector.flatten():
-            print x
+#class PSO:
+#    def __init__(self,inertia,social,cognitive,particleNum,iterationNum,elementNum=6):
+#        self.NUMBER_OF_PARTICLES = particleNum
+#        self.NUMBER_OF_ITERATIONS = iterationNum
+#        self.NUMBER_OF_ELEMENTS = elementNum
+#        self.INERTIAL_CONST = inertia
+#        self.SOCIAL_COMP = social
+#        self.COGNITIVE_COMP = cognitive
+#        
+#    def velocityUpdate(self,velocities,particle_vectors, particle_bests_v, global_best_v,r,s):
+#        # make global_best_V a matrix instead of a vector
+#        global_best_v = np.repeat(global_best_v,particle_vectors.shape[1],axis=1)
+#        
+#        # New velocity with inertial scaling
+#        vel = np.multiply(velocities,self.INERTIAL_CONST)
+#        # Add congnitive component to the velocity
+#        vel = vel + np.multiply(particle_bests_v-particle_vectors,r*self.COGNITIVE_COMP)
+#        # Add social component to the velocity
+#        vel = vel + np.multiply(global_best_v-particle_vectors,s*self.SOCIAL_COMP)
+#        print '...updated velocity'
+#        return vel
+#
+#    def optimize(self,Model):
+#        # CONSTANTS
+#        
+#        # particle structure
+#        #
+#        # | n+width | Lch | N-drift/gate length | n+ | n- | dit | (in column vector form)
+#        ##########################################################
+#        
+#        print 'Initializing particles...'
+#        
+#        particle = np.zeros((self.NUMBER_OF_ELEMENTS,1),dtype=np.float64)
+#        
+#        # initialize particles
+#        particle[0,0] = 182
+#        particle[1,0] = 195
+#        particle[2,0] = 200
+#        particle[3,0] = 5e17
+#        particle[4,0] = 1e16
+#        particle[5,0] = 3e10
+#        #print particle
+#        
+#        for x in range(self.NUMBER_OF_PARTICLES):
+#            if x>0:
+#                noise = 0.5 + np.random.random(size=(self.NUMBER_OF_ELEMENTS,1))
+#                particle = np.hstack((particle,np.multiply(particle[:,0].reshape(self.NUMBER_OF_ELEMENTS,1),noise)))
+#                
+#        #print particle.shape
+#        print 'Iteration 0:'
+#        # initialize velocities
+#        v = np.random.rand(self.NUMBER_OF_ELEMENTS,self.NUMBER_OF_PARTICLES)*2 - 1
+#        print 'running simulations...'
+#        # run initial simulations
+#        particle_costs = Model.simulate(particle,0)
+#        
+#        # save particle-bests (intially equivalent to the first round)
+#        particle_best_costs = particle_costs.copy()
+#        particle_best_vectors = particle.copy()
+#        
+#        # save global-best
+#        global_best_cost = np.min(particle_best_costs)
+#        best_vector_number = np.argmin(particle_best_costs)
+#        global_best_vector = particle[:,best_vector_number].reshape(self.NUMBER_OF_ELEMENTS,1)
+#        saveFile = 'logs/global_best_particle_iteration_0.npy'
+#        np.save(saveFile,global_best_vector.flatten())
+#        
+#        costs = [global_best_cost]
+#        best_vectors = [best_vector_number]
+#        print 'simulations done.\n'
+#        # main loop
+#        for q in range(self.NUMBER_OF_ITERATIONS):
+#            print 'Iteration %d:'%(q+1)
+#            
+#            # randomize r and s vectors
+#            r = np.random.rand(self.NUMBER_OF_ELEMENTS,self.NUMBER_OF_PARTICLES)
+#            s = np.random.rand(self.NUMBER_OF_ELEMENTS,self.NUMBER_OF_PARTICLES)
+#            
+#            # update velocities
+#            v = self.velocityUpdate(v, particle, particle_best_vectors, global_best_vector,r,s)
+#            
+#            # update particles
+#            particle = particle + v
+#            print 'particles updated...'
+#            print 'running simulations...'
+#            # run simulation for each particle
+#            particle_costs = Model.simulate(particle,q+1)
+#            
+#            # save particle bests
+#            for i,particle_cost in enumerate(particle_costs):
+#                if particle_cost < particle_best_costs[i]:
+#                    particle_best_costs[i] = particle_cost
+#                    particle_best_vectors[:,i] = particle[:,i]
+#            
+#            # save global best
+#            global_best_cost = np.min(particle_best_costs)
+#            costs.append(global_best_cost)
+#            best_vector_number = np.argmin(particle_best_costs)
+#            best_vectors.append(best_vector_number)
+#            global_best_vector = particle_best_vectors[:,best_vector_number].reshape(self.NUMBER_OF_ELEMENTS,1)
+#            saveFile = 'logs/global_best_particle_iteration_%d.npy'%(q+1)
+#            np.save(saveFile,global_best_vector.flatten())
+#            
+#            #save particle positions
+#            saveFile = 'logs/particle_iteration_%d.npy'%(q+1)
+#            np.save(saveFile, particle)
+#            print 'Best Particle Number: %d'%best_vector_number
+#            print 'simulations done.\n'
+#        
+#        #save global best cost history
+#        np.save('logs/global_best_costs.npy',np.array(costs))
+#        #save global best particle indexes
+#        np.save('logs/global_best_indeces.npy',np.array(best_vectors))
+#        print 'Done...'
+#        print 'Best cost: %.2f'%costs[-1]
+#        print 'Best Particle:'
+#        for x in global_best_vector.flatten():
+#            print x
 
 def main(argv):
     # create and maintain logs
@@ -339,6 +344,7 @@ def main(argv):
     else:
         with open('./logs/time.txt','rb') as fObj:
             ti = fObj.read()
+        #handle OS differences for mv/move
         os.system('mv logs old_logs_%s'%ti)
         os.system('mkdir logs')
         time = '_'.join([str(x) for x in time.gmtime()[:-4]])
@@ -386,8 +392,26 @@ def main(argv):
         print ' --temp <300 or 350> (optional, 300 by default)'
     else:
         MosfetModel = Model(ambient_temperature)
-        Swarm = PSO(inertial_component, social_component, cognitive_component, number_of_particles, number_of_iterations)
-        Swarm.optimize(MosfetModel)
+        # initialize swarm
+        particle = np.zeros((6,1),dtype=np.float64)
+        particle[0,0] = 182
+        particle[1,0] = 195
+        particle[2,0] = 200
+        particle[3,0] = 5e17
+        particle[4,0] = 1e16
+        particle[5,0] = 3e10
+        #print particle
+        
+        for x in range(number_of_particles):
+            if x>0:
+                noise = 0.5 + np.random.random(size=(6,1))
+                particle = np.hstack((particle,np.multiply(particle[:,0].reshape(6,1),noise)))
+        
+        pso = PSO(MosfetModel.simulate, particle, inertia=inertial_component, social=social_component,
+                  cognitive=cognitive_component, iter_number=30, logging=True)
+        best,cost = pso.swarm(verbose=True)
+        #Swarm = PSO(inertial_component, social_component, cognitive_component, number_of_particles, number_of_iterations)
+        #Swarm.optimize(MosfetModel)
 
 if __name__ == '__main__':
     from sys import argv
