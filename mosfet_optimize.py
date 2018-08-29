@@ -393,7 +393,7 @@ def main(argv):
     else:
         MosfetModel = Model(ambient_temperature)
         # initialize swarm
-        particle = np.zeros((6,1),dtype=np.float64)
+        particle = np.zeros((6,number_of_particles),dtype=np.float64)
         particle[0,0] = 182
         particle[1,0] = 195
         particle[2,0] = 200
@@ -404,12 +404,21 @@ def main(argv):
         
         for x in range(number_of_particles):
             if x>0:
-                noise = 0.5 + np.random.random(size=(6,1))
-                particle = np.hstack((particle,np.multiply(particle[:,0].reshape(6,1),noise)))
+                particle[0,x] = np.random.randint(160,200)
+                particle[1,x] = np.random.randint(160,200)
+                particle[2,x] = np.random.randint(160,200)
+                particle[3,x] = np.random.randint(1,100) *np.power(10,16)
+                particle[4,x] = np.random.randint(1,100) *np.power(10,15)
+                particle[5,x] = np.random.randint(1,100) *np.power(10,9)
+                
+                #noise = 0.5 + np.random.random(size=(6,1))
+                #particle = np.hstack((particle,np.multiply(particle[:,0].reshape(6,1),noise)))
         
         pso = PSO(MosfetModel.simulate, particle, inertia=inertial_component, social=social_component,
                   cognitive=cognitive_component, iter_number=30, logging=True)
         best,cost = pso.swarm(verbose=True)
+        print 'best cost: %f'%cost
+        print best
         #Swarm = PSO(inertial_component, social_component, cognitive_component, number_of_particles, number_of_iterations)
         #Swarm.optimize(MosfetModel)
 
