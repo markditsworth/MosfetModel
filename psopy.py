@@ -9,19 +9,16 @@ Created on Sat Aug 18 17:30:16 2018
 import numpy as np
 import matplotlib.pyplot as plt
 
-class PSO:
+class Swarm:
     def __init__(self, user_fxn, initial, swarm_size=20, stopping_criteria='iteration', distance_tolerance=None,
-                 error_tolerance=0.01, iter_number=100, inertia=0.9, cognitive=2.0, social=2.0, method='standard',
-                 logging=False, max_iter=np.inf, swarm_build=None, report=False, visual_dim=(0,1)):
+                 error_tolerance=0.01, iter_number=100,logging=False, max_iter=np.inf, swarm_build=None,
+                 report=False, visual_dim=(0,1)):
         # ensure kwargs are valid
         assert swarm_build in ['+-50%','random',None], "Invalid swarm_build.\n'+-50%', 'random', or None" 
         assert stopping_criteria.lower() in ['error','iteration','distance'], "Invalid stopping criteria.\n 'iteration' (default),'error', or 'distance'"
-        assert method in ['standard'], "Invalide method." #add more later
+        
         # set basic PSO object values
         self.cost_fcn = user_fxn
-        self.inertia = inertia
-        self.cognitive = cognitive
-        self.social = social
         self.initial = initial
         
         # handle stopping criteria
@@ -39,7 +36,6 @@ class PSO:
             self.max_iter = np.inf
         
         # PSO method, and swarm building settings
-        self.method = method
         self.swarm_size = swarm_size
         self.swarm_build = swarm_build
         # if initial swarm particles are provided, use the number provided as swarm size
@@ -96,7 +92,7 @@ class PSO:
         else:
             return self.initial.copy()
     
-    def standardVelocityUpdate(self,particles,velocities,pbs,g):
+    def standardVelocityUpdate(self,particles,velocities,pbs,g,inertial,social,cog):
         #ensure g is a column vector
         g = g.reshape((particles.shape[0],1))
         
@@ -105,17 +101,62 @@ class PSO:
         s = np.random.rand(particles.shape[0],particles.shape[1])
         
         # New velocity with inertial scaling
-        vel = np.multiply(velocities,self.inertia)
+        vel = np.multiply(velocities,inertial)
         
         # Add congnitive component to the velocity
-        vel = vel + np.multiply(pbs-particles, r*self.cognitive)
+        vel = vel + np.multiply(pbs-particles, r*cog)
         
         # Add social component to the velocity
-        vel = vel + np.multiply(g.repeat(particles.shape[1],axis=1)-particles, s*self.social)
+        vel = vel + np.multiply(g.repeat(particles.shape[1],axis=1)-particles, s*social)
         
         return vel
     
-    def swarm(self,verbose=False):
+    def lbestVelocityUpdate(self,particles,velocities,pbs,pbest_costs,kdtree,inertial,social,cognitive,K):
+        # create random vectors
+        r = np.random.rand(particles.shape[0],particles.shape[1])
+        s = np.random.rand(particles.shape[0],particles.shape[1])
+        
+        # New velocity with inertial scaling
+        vel = np.multiply(velocities,inertial)
+        
+        # Add congnitive component to the velocity
+        vel = vel + np.multiply(pbs-particles, r*cognitive)
+        
+        # Add social component to the velocity from K nearest neighbors
+        for p in range(particles.shape[1]):
+            _, nn_idx = kdtree.query(particles[:,p],k=K+1) # get indeces of K nearest neighbors (but include itself)
+            neighborhood_best_idx = nn_idx[np.argmin(pbest_costs[nn_idx])] # get index of neighbor with lowest cost
+            vel[:,p] = vel[:,p] + np.multiply(pbs[:,neighborhood_best_idx] - particles[:,p],s[:,p]*social)
+        
+        return vel
+    
+    def fipsVelocityUpdate(self,particles,velocities,pbs,phi,chi,A):
+        vel = np.zeros(particles.shape)
+        if type(A) == str:
+            if A == 'ones':
+                A = np.ones((particles.shape[1],particles.shape[1]))
+        
+        # create random vector
+        r = phi*np.random.rand(particles.shape[0],particles.shape[1])
+        
+        for i in range(particles.shape[1]):
+            diffs = pbs - particles[:,i].reshape((particles.shape[0],1))
+            vel[:,i] = np.sum(np.multiply(A[:,i],diffs), axis=1)
+        
+        vel = ((np.multiply(r,vel) / particles.shape[1]) + velocities)*chi
+        
+        return vel
+        
+    
+    def optimize(self,verbose,method,kwargs={}):
+        if method == 'lbest':
+            from scipy.spatial import KDTree
+            
+        elif method == 'binary':
+            # input should only be ones and zeros
+            check = (self.initial == np.ones(self.initial.shape)).astype(int) + (self.initial == np.zeros(self.initial.shape)).astype(int)
+            assert check.all() == True, 'Invalid initial swarm. For binary PSO, particles must be in [0,1]'
+            
         #initialize particles
         particles = self.makeParticles()
         
@@ -144,15 +185,14 @@ class PSO:
                 print 'WARNING: No convergence in %d iterations. Results not valid.'%self.max_iter
                 break
             
-            if verbose: print '\niteration %d....'%iteration_number
-            
             if self.logging:
                 self.save_swarm(particles,iteration_number)
+                
+            if method == 'lbest':
+                kdt = KDTree(particles.T) #KD-Tree built on row vectors, not column
             
             # Run calculation
             costs = self.cost_fcn(particles)
-            
-            if verbose: print 'costs calculated...'
             
             #update particle_best_costs
             for i,cost in enumerate(costs):
@@ -162,34 +202,47 @@ class PSO:
                     #update particle_bests
                     particle_bests[:,i] = particles[:,i]
             
-            if verbose:
-                print '\nparticle bests updated:'
-                for i,x in enumerate(particle_best_costs):
-                    print 'particle %d cost: %f'%(i,x)
-            
             #update global_best_cost
             global_best_cost = min(global_best_cost,np.min(costs))
             cost_history = np.hstack((cost_history,global_best_cost))
             
-            if verbose: print '\nglobal best cost: %f'%global_best_cost
             
             #update best_particle
             best_particle = particles[:,np.argmin(costs)]
             
             if verbose:
-                print '\nbest particle found:'
-                for x in best_particle:
-                    print x
+                print 'iteration %d...'%iteration_number
+                for i,x in enumerate(particle_best_costs):
+                    if x == global_best_cost:
+                        print 'particle %d cost: %.3e <-- GLOBAL BEST'%(i,x)
+                    else:
+                        print 'particle %d cost: %.3e'%(i,x)
+            else:
+                print 'iteration %6d | best cost = %.3e'%(iteration_number,global_best_cost)
             
             #update velocities
-            if self.method == 'standard':
-                velocities = self.standardVelocityUpdate(particles,velocities,particle_bests,best_particle)
+            if method == 'standard' or method == 'binary':
+                velocities = self.standardVelocityUpdate(particles,velocities,particle_bests,best_particle,
+                                                         kwargs['inertial'],kwargs['social'],kwargs['cognitive'])
+            elif method == 'FIPS':
+                velocities = self.fipsVelocityUpdate(particles,velocities,particle_bests,
+                                                     kwargs['phi'],kwargs['chi'],kwargs['adjacency'])
+            elif method == 'lbest':
+                velocities = self.lbestVelocityUpdate(particles,velocities,particle_bests,particle_best_costs,
+                                                      kdt,kwargs['inertial'],kwargs['social'],kwargs['cognitive'],
+                                                      kwargs['K'])
             else:
                 print 'No other methods are available at this time.'
                 break
             
             #update particles
-            particles = np.add(particles,velocities)
+            if method == 'binary':
+                probabilities = 1/(1 + np.exp(-1*velocities)) # velocities to [0,1] via sigmoid function
+                r = np.random.random(particles.shape)
+                particles = (r < probabilities).astype(int)
+            else:
+                particles = np.add(particles,velocities)
+                
             iteration_number += 1
             
         if self.logging:
@@ -199,13 +252,32 @@ class PSO:
             
         return best_particle, global_best_cost
     
+    def gbest(self,inertial=0.6,social=1.7,cognitive=0.4,verbose=False):
+        kwargs = {'inertial':inertial,'social':social,'cognitive':cognitive}
+        return self.optimize(verbose,'standard',kwargs=kwargs)
+    
+    def FIPS(self,A='ones',phi=4.1,chi=0.7,verbose=False):
+        kwargs = {'phi':phi,'chi':chi,'adjacency':A}
+        return self.optimize(verbose,'FIPS',kwargs=kwargs)
+    
+    def binary(self,inertial=0.6,social=1.7,cognitive=0.4,verbose=False):
+        kwargs = {'inertial':inertial,'social':social,'cognitive':cognitive}
+        return self.optimize(verbose,'binary',kwargs=kwargs)
+    
+    def lbest(self,inertial=0.6,social=1.7,cognitive=0.4,n_neighbors=2,verbose=False):
+        kwargs = {'inertial':inertial,'social':social,'cognitive':cognitive,'K':n_neighbors,
+                  'verbose':verbose}
+        return self.optimize(verbose,'lbest',kwargs=kwargs)
+    
+    def FDR(self):
+        return 'Not yet implemented'
+    
     def save_swarm(self,swarm,iteration_count):
         fname = 'particles_iteration_%d.npy'%iteration_count
         np.save(fname,swarm)
         
-    
     def graph(self,pair,iterations):
-        # handle large number of iterations, only show 20
+        # handle large number of iterations, only ever show 20
         steps = np.arange(iterations)
         if iterations>20:
             step_size = iterations/20
