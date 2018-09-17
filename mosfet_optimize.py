@@ -10,7 +10,7 @@ import numpy as np
 import subprocess
 import ATLAS
 from scipy.optimize import curve_fit
-from psopy import PSO
+from psopy import Swarm
 
 def linear(x,m,b):
     y = m*x + b
@@ -414,13 +414,23 @@ def main(argv):
                 #noise = 0.5 + np.random.random(size=(6,1))
                 #particle = np.hstack((particle,np.multiply(particle[:,0].reshape(6,1),noise)))
         
-        pso = PSO(MosfetModel.simulate, particle, inertia=inertial_component, social=social_component,
-                  cognitive=cognitive_component, iter_number=30, logging=True)
-        best,cost = pso.swarm(verbose=True)
+        #pso = PSO(MosfetModel.simulate, particle, inertia=inertial_component, social=social_component,
+        #          cognitive=cognitive_component, iter_number=30, logging=True)
+        #best,cost = pso.swarm(verbose=True)
+        swarm = Swarm(MosfetModel.simulate, particle, stopping_criteria='iteration', iter_number=30,
+                      logging=True)
+        # gbest
+        best,cost = swarm.gbest(inertial=inertial_component, social=social_component, cognitive=cognitive_component,
+                                verbose=True)
+        # lbest
+        '''
+        best,cost = swarm.lbest(inertial=inertial_component, social=social_component, cognitive=cognitive_component,
+                                n_neighbors=3,verbose=True)
+        # FIPS
+        best,cost = swarm.FIPS()'''
+        
         print 'best cost: %f'%cost
         print best
-        #Swarm = PSO(inertial_component, social_component, cognitive_component, number_of_particles, number_of_iterations)
-        #Swarm.optimize(MosfetModel)
 
 if __name__ == '__main__':
     from sys import argv
