@@ -120,7 +120,7 @@ class Model:
         return cost
 
     # Generates semiconductor geometry
-    def buildDeck(self,particle,IdVg,IdVd,particle_num):
+    def buildDeck(self,particle,IdVg,IdVd,particle_num,n_height=0.15,p_height=0.3):
         n_width = particle[0]
         p_width = particle[1]
         n_drift_width = particle[2]
@@ -134,9 +134,9 @@ class Model:
         
         NSUB_HEIGHT = 3
         
-        P_HEIGHT = 0.3
+        P_HEIGHT = p_height
         
-        N_HEIGHT = 0.15
+        N_HEIGHT = n_height
         
         Cox = 422.018e-12 / 2
         p_doping = 2e17
@@ -170,7 +170,26 @@ class Model:
             ATLAS.deck(nsub,ndrift,p,nsource,source,oxide,gate,p_doping,n_drift_doping,n_plus_doping,dit,IdVg,IdVd,filename,boundary,particle_num,tox,self.temp)
             
             return filename
-
+    
+    def _iterate(self):
+        n_w = 182
+        p_w = 187
+        nd_w = 200
+        ns = 5e17
+        nd = 1e16
+        dit=3e10
+        p = np.array([n_w,p_w,nd_w,ns,nd,dit])
+        num=1
+        for pHeight in [0.1,0.2,0.3,0.4,0.5]:
+            for nHeightScale in [0.25,0.5,0.75]:
+                nHeight = pHeight * nHeightScale
+                idvd = 'SiC_IdVd_curvatureTest_%d.log'%num
+                idvg = 'SiC_IdVg_curvatureTest_%d.log'%num
+                deckFile = self.buildDeck(p,idvg,idvd,num,nh=nHeight,ph=pHeight)
+                print 'p: %.3f  n: %.3f'%(pHeight,nHeight)
+                cmd = '\\sedatools\\exe\\deckbuild -run %s'%deckFile
+                subprocess.call(cmd.split(' '))
+                num += 1
 
     def simulate(self,particles):
 #        # Testing
@@ -215,124 +234,6 @@ class Model:
         
         return particle_costs
 
-#class PSO:
-#    def __init__(self,inertia,social,cognitive,particleNum,iterationNum,elementNum=6):
-#        self.NUMBER_OF_PARTICLES = particleNum
-#        self.NUMBER_OF_ITERATIONS = iterationNum
-#        self.NUMBER_OF_ELEMENTS = elementNum
-#        self.INERTIAL_CONST = inertia
-#        self.SOCIAL_COMP = social
-#        self.COGNITIVE_COMP = cognitive
-#        
-#    def velocityUpdate(self,velocities,particle_vectors, particle_bests_v, global_best_v,r,s):
-#        # make global_best_V a matrix instead of a vector
-#        global_best_v = np.repeat(global_best_v,particle_vectors.shape[1],axis=1)
-#        
-#        # New velocity with inertial scaling
-#        vel = np.multiply(velocities,self.INERTIAL_CONST)
-#        # Add congnitive component to the velocity
-#        vel = vel + np.multiply(particle_bests_v-particle_vectors,r*self.COGNITIVE_COMP)
-#        # Add social component to the velocity
-#        vel = vel + np.multiply(global_best_v-particle_vectors,s*self.SOCIAL_COMP)
-#        print '...updated velocity'
-#        return vel
-#
-#    def optimize(self,Model):
-#        # CONSTANTS
-#        
-#        # particle structure
-#        #
-#        # | n+width | Lch | N-drift/gate length | n+ | n- | dit | (in column vector form)
-#        ##########################################################
-#        
-#        print 'Initializing particles...'
-#        
-#        particle = np.zeros((self.NUMBER_OF_ELEMENTS,1),dtype=np.float64)
-#        
-#        # initialize particles
-#        particle[0,0] = 182
-#        particle[1,0] = 195
-#        particle[2,0] = 200
-#        particle[3,0] = 5e17
-#        particle[4,0] = 1e16
-#        particle[5,0] = 3e10
-#        #print particle
-#        
-#        for x in range(self.NUMBER_OF_PARTICLES):
-#            if x>0:
-#                noise = 0.5 + np.random.random(size=(self.NUMBER_OF_ELEMENTS,1))
-#                particle = np.hstack((particle,np.multiply(particle[:,0].reshape(self.NUMBER_OF_ELEMENTS,1),noise)))
-#                
-#        #print particle.shape
-#        print 'Iteration 0:'
-#        # initialize velocities
-#        v = np.random.rand(self.NUMBER_OF_ELEMENTS,self.NUMBER_OF_PARTICLES)*2 - 1
-#        print 'running simulations...'
-#        # run initial simulations
-#        particle_costs = Model.simulate(particle,0)
-#        
-#        # save particle-bests (intially equivalent to the first round)
-#        particle_best_costs = particle_costs.copy()
-#        particle_best_vectors = particle.copy()
-#        
-#        # save global-best
-#        global_best_cost = np.min(particle_best_costs)
-#        best_vector_number = np.argmin(particle_best_costs)
-#        global_best_vector = particle[:,best_vector_number].reshape(self.NUMBER_OF_ELEMENTS,1)
-#        saveFile = 'logs/global_best_particle_iteration_0.npy'
-#        np.save(saveFile,global_best_vector.flatten())
-#        
-#        costs = [global_best_cost]
-#        best_vectors = [best_vector_number]
-#        print 'simulations done.\n'
-#        # main loop
-#        for q in range(self.NUMBER_OF_ITERATIONS):
-#            print 'Iteration %d:'%(q+1)
-#            
-#            # randomize r and s vectors
-#            r = np.random.rand(self.NUMBER_OF_ELEMENTS,self.NUMBER_OF_PARTICLES)
-#            s = np.random.rand(self.NUMBER_OF_ELEMENTS,self.NUMBER_OF_PARTICLES)
-#            
-#            # update velocities
-#            v = self.velocityUpdate(v, particle, particle_best_vectors, global_best_vector,r,s)
-#            
-#            # update particles
-#            particle = particle + v
-#            print 'particles updated...'
-#            print 'running simulations...'
-#            # run simulation for each particle
-#            particle_costs = Model.simulate(particle,q+1)
-#            
-#            # save particle bests
-#            for i,particle_cost in enumerate(particle_costs):
-#                if particle_cost < particle_best_costs[i]:
-#                    particle_best_costs[i] = particle_cost
-#                    particle_best_vectors[:,i] = particle[:,i]
-#            
-#            # save global best
-#            global_best_cost = np.min(particle_best_costs)
-#            costs.append(global_best_cost)
-#            best_vector_number = np.argmin(particle_best_costs)
-#            best_vectors.append(best_vector_number)
-#            global_best_vector = particle_best_vectors[:,best_vector_number].reshape(self.NUMBER_OF_ELEMENTS,1)
-#            saveFile = 'logs/global_best_particle_iteration_%d.npy'%(q+1)
-#            np.save(saveFile,global_best_vector.flatten())
-#            
-#            #save particle positions
-#            saveFile = 'logs/particle_iteration_%d.npy'%(q+1)
-#            np.save(saveFile, particle)
-#            print 'Best Particle Number: %d'%best_vector_number
-#            print 'simulations done.\n'
-#        
-#        #save global best cost history
-#        np.save('logs/global_best_costs.npy',np.array(costs))
-#        #save global best particle indexes
-#        np.save('logs/global_best_indeces.npy',np.array(best_vectors))
-#        print 'Done...'
-#        print 'Best cost: %.2f'%costs[-1]
-#        print 'Best Particle:'
-#        for x in global_best_vector.flatten():
-#            print x
 
 def main(argv):
     # create and maintain logs
@@ -357,6 +258,7 @@ def main(argv):
     social_component = 0
     cognitive_component = 0
     help_flag = False
+    test_flag = False
     while argv:
         if argv[0] == '--inertial':
             inertial_component = float(argv[1])
@@ -372,6 +274,8 @@ def main(argv):
             ambient_temperature = int(argv[1])
         elif argv[0] == '-h' or argv[0] == '--help':
             help_flag = True
+        elif argv[0] == '--test':
+            test_flag = True
         argv = argv[1:]
     
     if help_flag:
@@ -382,6 +286,7 @@ def main(argv):
         print ' --particles <particle number>'
         print ' --iterations <iteration number>'
         print ' --temp <300 or 350> (optional, 300 by default)'
+        print ' --test Runs the _iterate function to test conditions'
     elif not (number_of_iterations and number_of_particles and inertial_component and social_component and cognitive_component):
         print 'Flag missing!'
         print ' --inertial <inertial component>'
@@ -390,6 +295,9 @@ def main(argv):
         print ' --particles <particle number>'
         print ' --iterations <iteration number>'
         print ' --temp <300 or 350> (optional, 300 by default)'
+    elif test_flag:
+        MosfetModel = Model(ambient_temperature)
+        MosfetModel._iterate()
     else:
         MosfetModel = Model(ambient_temperature)
         # initialize swarm
@@ -427,7 +335,11 @@ def main(argv):
         best,cost = swarm.lbest(inertial=inertial_component, social=social_component, cognitive=cognitive_component,
                                 n_neighbors=3,verbose=True)
         # FIPS
-        best,cost = swarm.FIPS()'''
+        best,cost = swarm.FIPS()
+        
+        # FDR
+        best,cost = swarm.FDR(inertial=inertial_component, social=social_component, cognitive=cognitive_component,
+                              verbose=True)'''
         
         print 'best cost: %f'%cost
         print best
