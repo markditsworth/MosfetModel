@@ -120,7 +120,7 @@ class Model:
         return cost
 
     # Generates semiconductor geometry
-    def buildDeck(self,particle,IdVg,IdVd,particle_num,n_height=0.15,p_height=0.3):
+    def buildDeck(self,particle,IdVg,IdVd,particle_num,n_height=0.15,p_height=0.3,total_height=6):
         n_width = particle[0]
         p_width = particle[1]
         n_drift_width = particle[2]
@@ -129,7 +129,7 @@ class Model:
         dit = particle[5]
         
         TOTAL_WIDTH = 600
-        TOTAL_HEIGHT = 6
+        TOTAL_HEIGHT = total_height
         DEPTH = 2000
         
         NSUB_HEIGHT = 3
@@ -152,7 +152,7 @@ class Model:
             boundary = TOTAL_HEIGHT - NSUB_HEIGHT
             
             nsub = "0,%f %f,%f %f,%f 0,%f"%(TOTAL_HEIGHT, TOTAL_WIDTH,TOTAL_HEIGHT, TOTAL_WIDTH,TOTAL_HEIGHT-NSUB_HEIGHT, TOTAL_HEIGHT-NSUB_HEIGHT)
-            
+            nh=nHeight,ph=pHeight
             ndrift = "%f,%f %f,%f %f,%f %f,%f %f,%f %f,%f"%(0,TOTAL_HEIGHT-NSUB_HEIGHT, TOTAL_WIDTH,TOTAL_HEIGHT-NSUB_HEIGHT, TOTAL_WIDTH,0, TOTAL_WIDTH-n_drift_width,0, TOTAL_WIDTH-n_drift_width,P_HEIGHT, 0,P_HEIGHT)
             
             p = "%f,%f %f,%f %f,%f %f,%f %f,%f %f,%f %f,%f %f,%f"%(0,P_HEIGHT, TOTAL_WIDTH-n_drift_width,P_HEIGHT, TOTAL_WIDTH-n_drift_width,0, TOTAL_WIDTH-n_drift_width-p_width,0, TOTAL_WIDTH-n_drift_width-p_width,N_HEIGHT, p_source_width,N_HEIGHT, p_source_width,0, 0,0)
@@ -180,16 +180,14 @@ class Model:
         dit=3e10
         p = np.array([n_w,p_w,nd_w,ns,nd,dit])
         num=1
-        for pHeight in [0.1,0.2,0.3,0.4,0.5]:
-            for nHeightScale in [0.25,0.5,0.75]:
-                nHeight = pHeight * nHeightScale
-                idvd = 'SiC_IdVd_curvatureTest_%d.log'%num
-                idvg = 'SiC_IdVg_curvatureTest_%d.log'%num
-                deckFile = self.buildDeck(p,idvg,idvd,num,nh=nHeight,ph=pHeight)
-                print 'p: %.3f  n: %.3f'%(pHeight,nHeight)
-                cmd = '\\sedatools\\exe\\deckbuild -run %s'%deckFile
-                subprocess.call(cmd.split(' '))
-                num += 1
+        for TH in [6,7,8]:
+            idvd = 'SiC_IdVd_curvatureTest_%d.log'%num
+            idvg = 'SiC_IdVg_curvatureTest_%d.log'%num
+            deckFile = self.buildDeck(p,idvg,idvd,num,total_height=TH)
+            print 'height: %d'%TH
+            cmd = '\\sedatools\\exe\\deckbuild -run %s'%deckFile
+            subprocess.call(cmd.split(' '))
+            num += 1
 
     def simulate(self,particles):
 #        # Testing
