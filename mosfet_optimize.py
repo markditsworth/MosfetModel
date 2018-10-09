@@ -120,7 +120,7 @@ class Model:
         return cost
 
     # Generates semiconductor geometry
-    def buildDeck(self,particle,IdVg,IdVd,particle_num,n_height=0.15,p_height=0.3,total_height=6):
+    def buildDeck(self,particle,IdVg,IdVd,particle_num,n_height=0.15,p_height=0.3,total_height=6,ndrain_dope=1e19):
         n_width = particle[0]
         p_width = particle[1]
         n_drift_width = particle[2]
@@ -152,7 +152,7 @@ class Model:
             boundary = TOTAL_HEIGHT - NSUB_HEIGHT
             
             nsub = "0,%f %f,%f %f,%f 0,%f"%(TOTAL_HEIGHT, TOTAL_WIDTH,TOTAL_HEIGHT, TOTAL_WIDTH,TOTAL_HEIGHT-NSUB_HEIGHT, TOTAL_HEIGHT-NSUB_HEIGHT)
-            nh=nHeight,ph=pHeight
+            
             ndrift = "%f,%f %f,%f %f,%f %f,%f %f,%f %f,%f"%(0,TOTAL_HEIGHT-NSUB_HEIGHT, TOTAL_WIDTH,TOTAL_HEIGHT-NSUB_HEIGHT, TOTAL_WIDTH,0, TOTAL_WIDTH-n_drift_width,0, TOTAL_WIDTH-n_drift_width,P_HEIGHT, 0,P_HEIGHT)
             
             p = "%f,%f %f,%f %f,%f %f,%f %f,%f %f,%f %f,%f %f,%f"%(0,P_HEIGHT, TOTAL_WIDTH-n_drift_width,P_HEIGHT, TOTAL_WIDTH-n_drift_width,0, TOTAL_WIDTH-n_drift_width-p_width,0, TOTAL_WIDTH-n_drift_width-p_width,N_HEIGHT, p_source_width,N_HEIGHT, p_source_width,0, 0,0)
@@ -167,7 +167,7 @@ class Model:
             
             filename = "SiC_particle_%d.in"%particle_num
             
-            ATLAS.deck(nsub,ndrift,p,nsource,source,oxide,gate,p_doping,n_drift_doping,n_plus_doping,dit,IdVg,IdVd,filename,boundary,particle_num,tox,self.temp)
+            ATLAS.deck(nsub,ndrift,p,nsource,source,oxide,gate,p_doping,n_drift_doping,n_plus_doping,dit,IdVg,IdVd,filename,boundary,particle_num,tox,self.temp,ndrain_dope)
             
             return filename
     
@@ -180,11 +180,11 @@ class Model:
         dit=3e10
         p = np.array([n_w,p_w,nd_w,ns,nd,dit])
         num=1
-        for TH in [6,7,8]:
+        for ndd in [1e17,1e18,1e19,1e20]:
             idvd = 'SiC_IdVd_curvatureTest_%d.log'%num
             idvg = 'SiC_IdVg_curvatureTest_%d.log'%num
-            deckFile = self.buildDeck(p,idvg,idvd,num,total_height=TH)
-            print 'height: %d'%TH
+            deckFile = self.buildDeck(p,idvg,idvd,num,ndrain_dope=ndd)
+            print 'n-drain doping: %f'%ndd
             cmd = '\\sedatools\\exe\\deckbuild -run %s'%deckFile
             subprocess.call(cmd.split(' '))
             num += 1
