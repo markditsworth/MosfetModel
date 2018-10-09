@@ -6,7 +6,7 @@ Created on Mon Jun  4 12:57:12 2018
 @author: markditsworth
 """
 
-def deck(nsub,ndrift,p,n_plus,source,oxide,gate,p_doping,n_drift_doping,n_plus_doping,dit,IdVg_fname,IdVd_fname,filename,boundary,num,tox,temp):
+def deck(nsub,ndrift,p,n_plus,source,oxide,gate,p_doping,n_drift_doping,n_plus_doping,dit,IdVg_fname,IdVd_fname,filename,boundary,num,tox,temp,ndrain_dope):
     deck = r"""
 # (c) Silvaco Inc., 2015
 go devedit
@@ -30,7 +30,7 @@ region reg=1 name=n+sub mat=4H-SiC color=0x7f00ff pattern=0x8 \
 	polygon="%s"
 #
 impurity id=1 region.id=1 imp=Arsenic \
-	peak.value=1e19 ref.value=1000000000000 comb.func=Multiply
+	peak.value=%s ref.value=1000000000000 comb.func=Multiply
 #
 constr.mesh region=1 default max.height=2 min.width=100
 
@@ -245,7 +245,7 @@ solve vgate=0.05 vstep=0.05 vfinal=8 name=gate
  
 #tonyplot
 quit
-    """%(nsub,ndrift,n_drift_doping,p,p_doping,n_plus,n_plus_doping,oxide,source,gate,tox/2.0,boundary-1,boundary+1,num,num,temp,dit,IdVd_fname,num,temp,dit,IdVg_fname)
+    """%(nsub,ndrain_dope,ndrift,n_drift_doping,p,p_doping,n_plus,n_plus_doping,oxide,source,gate,tox/2.0,boundary-1,boundary+1,num,num,temp,dit,IdVd_fname,num,temp,dit,IdVg_fname)
     
     # save deck as
     with open(filename,'wb') as fObj:
