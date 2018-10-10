@@ -120,7 +120,7 @@ class Model:
         return cost
 
     # Generates semiconductor geometry
-    def buildDeck(self,particle,IdVg,IdVd,particle_num,n_height=0.15,p_height=0.3,total_height=6,ndrain_dope=1e19):
+    def buildDeck(self,particle,IdVg,IdVd,particle_num,n_height=0.15,p_height=0.3,total_height=6,ndrain_dope=1e19,depth=1):
         n_width = particle[0]
         p_width = particle[1]
         n_drift_width = particle[2]
@@ -130,7 +130,7 @@ class Model:
         
         TOTAL_WIDTH = 600
         TOTAL_HEIGHT = total_height
-        DEPTH = 2000
+        DEPTH = depth
         
         NSUB_HEIGHT = 3
         
@@ -167,7 +167,7 @@ class Model:
             
             filename = "SiC_particle_%d.in"%particle_num
             
-            ATLAS.deck(nsub,ndrift,p,nsource,source,oxide,gate,p_doping,n_drift_doping,n_plus_doping,dit,IdVg,IdVd,filename,boundary,particle_num,tox,self.temp,ndrain_dope)
+            ATLAS.deck(nsub,ndrift,p,nsource,source,oxide,gate,p_doping,n_drift_doping,n_plus_doping,dit,IdVg,IdVd,filename,boundary,particle_num,tox,self.temp,ndrain_dope,DEPTH)
             
             return filename
     
