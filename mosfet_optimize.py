@@ -120,7 +120,7 @@ class Model:
         return cost
 
     # Generates semiconductor geometry
-    def buildDeck(self,particle,IdVg,IdVd,particle_num,n_height=0.15,p_height=0.3,total_height=6,ndrain_dope=1e19,depth=1):
+    def buildDeck(self,particle,IdVg,IdVd,particle_num,n_height=0.15,p_height=0.3,total_height=6,p_doping=2e17):
         n_width = particle[0]
         p_width = particle[1]
         n_drift_width = particle[2]
@@ -130,7 +130,7 @@ class Model:
         
         TOTAL_WIDTH = 600
         TOTAL_HEIGHT = total_height
-        DEPTH = depth
+        DEPTH = 2000
         
         NSUB_HEIGHT = 3
         
@@ -139,7 +139,7 @@ class Model:
         N_HEIGHT = n_height
         
         Cox = 422.018e-12 / 2
-        p_doping = 2e17
+        #p_doping = 2e17
         es = 9.66 *8.85e-12
         p_source_width = TOTAL_WIDTH - n_width - p_width - n_drift_width
         # if geometry is bad, flag for ensuring high cost
@@ -161,13 +161,13 @@ class Model:
             
             source = "%f,%f %f,%f %f,%f %f,%f %f,%f"%(0,0, source_contact_width,0, source_contact_width,-tox, source_contact_width,-0.3, 0,-0.3)
             
-            oxide = "%f,%f %f,%f %f,%f %f,%f %f,%f %f,%f %f,%f"%(source_contact_width,0, p_source_width+n_width,0, TOTAL_WIDTH-n_drift_width,0, TOTAL_WIDTH,0, TOTAL_WIDTH,-tox, p_source_width+n_width-1,-tox, source_contact_width,-tox)
+            oxide = "%f,%f %f,%f %f,%f %f,%f %f,%f %f,%f %f,%f"%(source_contact_width,0, p_source_width+n_width,0, TOTAL_WIDTH-n_drift_width,0, TOTAL_WIDTH,0, TOTAL_WIDTH,-tox, p_source_width+n_width-40,-tox, source_contact_width,-tox)
             
-            gate = "%f,%f %f,%f %f,%f %f,%f"%(p_source_width+n_width-1,-tox, TOTAL_WIDTH,-tox, TOTAL_WIDTH,-tox-0.3, p_source_width+n_width-1,-tox-0.3)
+            gate = "%f,%f %f,%f %f,%f %f,%f"%(p_source_width+n_width-40,-tox, TOTAL_WIDTH,-tox, TOTAL_WIDTH,-tox-0.3, p_source_width+n_width-40,-tox-0.3)
             
             filename = "SiC_particle_%d.in"%particle_num
             
-            ATLAS.deck(nsub,ndrift,p,nsource,source,oxide,gate,p_doping,n_drift_doping,n_plus_doping,dit,IdVg,IdVd,filename,boundary,particle_num,tox,self.temp,ndrain_dope,DEPTH)
+            ATLAS.deck(nsub,ndrift,p,nsource,source,oxide,gate,p_doping,n_drift_doping,n_plus_doping,dit,IdVg,IdVd,filename,boundary,particle_num,tox,self.temp)
             
             return filename
     
@@ -180,11 +180,12 @@ class Model:
         dit=3e10
         p = np.array([n_w,p_w,nd_w,ns,nd,dit])
         num=1
-        for ndd in [1e17,1e18,1e19,1e20]:
+        for TH in [1e10]:
             idvd = 'SiC_IdVd_curvatureTest_%d.log'%num
             idvg = 'SiC_IdVg_curvatureTest_%d.log'%num
-            deckFile = self.buildDeck(p,idvg,idvd,num,ndrain_dope=ndd)
-            print 'n-drain doping: %f'%ndd
+            p[-1] = TH
+            deckFile = self.buildDeck(p,idvg,idvd,num)
+            print 'dit: %.2e'%TH
             cmd = '\\sedatools\\exe\\deckbuild -run %s'%deckFile
             subprocess.call(cmd.split(' '))
             num += 1
@@ -285,6 +286,9 @@ def main(argv):
         print ' --iterations <iteration number>'
         print ' --temp <300 or 350> (optional, 300 by default)'
         print ' --test Runs the _iterate function to test conditions'
+    elif test_flag:
+        MosfetModel = Model(ambient_temperature)
+        MosfetModel._iterate()
     elif not (number_of_iterations and number_of_particles and inertial_component and social_component and cognitive_component):
         print 'Flag missing!'
         print ' --inertial <inertial component>'
@@ -293,9 +297,6 @@ def main(argv):
         print ' --particles <particle number>'
         print ' --iterations <iteration number>'
         print ' --temp <300 or 350> (optional, 300 by default)'
-    elif test_flag:
-        MosfetModel = Model(ambient_temperature)
-        MosfetModel._iterate()
     else:
         MosfetModel = Model(ambient_temperature)
         # initialize swarm

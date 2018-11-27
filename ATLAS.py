@@ -6,7 +6,7 @@ Created on Mon Jun  4 12:57:12 2018
 @author: markditsworth
 """
 
-def deck(nsub,ndrift,p,n_plus,source,oxide,gate,p_doping,n_drift_doping,n_plus_doping,dit,IdVg_fname,IdVd_fname,filename,boundary,num,tox,temp,ndrain_dope,w):
+def deck(nsub,ndrift,p,n_plus,source,oxide,gate,p_doping,n_drift_doping,n_plus_doping,dit,IdVg_fname,IdVd_fname,filename,boundary,num,tox,temp):
     deck = r"""
 # (c) Silvaco Inc., 2015
 go devedit
@@ -30,7 +30,7 @@ region reg=1 name=n+sub mat=4H-SiC color=0x7f00ff pattern=0x8 \
 	polygon="%s"
 #
 impurity id=1 region.id=1 imp=Arsenic \
-	peak.value=%s ref.value=1000000000000 comb.func=Multiply
+	peak.value=1e19 ref.value=1000000000000 comb.func=Multiply
 #
 constr.mesh region=1 default max.height=2 min.width=100
 
@@ -203,7 +203,7 @@ struct outf=Wolfspeed_SiC_%d.str
 
 go atlas
 
-mesh infile=Wolfspeed_SiC_%d.str WIDTH=%d
+mesh infile=Wolfspeed_SiC_%d.str width=10
 
 material material=4H-SiC permitti=9.66 eg300=3.26 \
 			edb=0.1 gcb=2 eab=0.2 gvb=4 \
@@ -245,7 +245,7 @@ solve vgate=0.05 vstep=0.05 vfinal=8 name=gate
  
 #tonyplot
 quit
-    """%(nsub,ndrain_dope,ndrift,n_drift_doping,p,p_doping,n_plus,n_plus_doping,oxide,source,gate,tox/2.0,boundary-1,boundary+1,num,num,temp,dit,IdVd_fname,num,w,temp,dit,IdVg_fname)
+    """%(nsub,ndrift,n_drift_doping,p,p_doping,n_plus,n_plus_doping,oxide,source,gate,tox/2.0,boundary-1,boundary+1,num,num,temp,dit,IdVd_fname,num,temp,dit,IdVg_fname)
     
     # save deck as
     with open(filename,'wb') as fObj:
