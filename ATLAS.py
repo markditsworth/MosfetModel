@@ -211,13 +211,13 @@ material material=4H-SiC permitti=9.66 eg300=3.26 \
 			tc.a=100 taurel.el=2.8e-12
 models temp=%d conmob bgn srh print
 #impact selb
-mobility material=4H-SiC	vsatn=2e7 vsatp=2e7 betan=2 betap=2 \
-			mu1n.caug=10  mu2n.caug=410 ncritn.caug=13e17  \
-			deltan.caug=0.6 gamman.caug=0.0 \
-			alphan.caug=-3 betan.caug=-3 \
-			mu1p.caug=20   mu2p.caug=95  ncritp.caug=1e19 \
-			deltap.caug=0.5  gammap.caug=0.0 \
-			alphap.caug=-3 betap.caug=-3
+#mobility material=4H-SiC	vsatn=2e7 vsatp=2e7 betan=2 betap=2 \
+#			mu1n.caug=10  mu2n.caug=410 ncritn.caug=13e17  \
+#			deltan.caug=0.6 gamman.caug=0.0 \
+#			alphan.caug=-3 betan.caug=-3 \
+#			mu1p.caug=20   mu2p.caug=95  ncritp.caug=1e19 \
+#			deltap.caug=0.5  gammap.caug=0.0 \
+#			alphap.caug=-3 betap.caug=-3
 
 contact name=gate n.poly
 #contact name=source workfunction=0
